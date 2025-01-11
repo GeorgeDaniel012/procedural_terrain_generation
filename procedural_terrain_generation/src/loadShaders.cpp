@@ -75,8 +75,8 @@ GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_pat
         // convert stream into string
         vertexCode   = vShaderStream.str();
         fragmentCode = fShaderStream.str();
-        tessellationControlCode = vShaderStream.str();
-        tessellationEvaluationCode = fShaderStream.str();
+        tessellationControlCode = tcShaderStream.str();
+        tessellationEvaluationCode = teShaderStream.str();
     }
     catch (std::ifstream::failure& e)
     {
@@ -94,7 +94,7 @@ GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_pat
     glCompileShader(vertex);
     checkCompileErrors(vertex, "VERTEX");
     // fragment Shader
-    fragment = glCreateShader( GL_TESS_CONTROL_SHADER);
+    fragment = glCreateShader( GL_FRAGMENT_SHADER);
     glShaderSource(fragment, 1, &fShaderCode, NULL);
     glCompileShader(fragment);
     checkCompileErrors(fragment, "FRAGMENT");

@@ -6,7 +6,12 @@
 #include <GL/glew.h> // glew apare inainte de freeglut
 #include <GL/freeglut.h> // nu trebuie uitat freeglut.h
 #include "loadShaders.h"
-
+#include "fastnoise/FastNoiseLite.h"
+#include <glm/glm.hpp>
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include <vector>
 
 //////////////////////////////////////
 
@@ -14,11 +19,135 @@ GLuint
 VaoId,
 VboId,
 ColorBufferId,
-ProgramId;
+ProgramId,
+myMatrixLocation,
+matrUmbraLocation,
+viewLocation,
+projLocation, 
+viewPosLoc;
 
+float PI = 3.141592;
+const int height = 100, width = 150;
+unsigned nr_patches = 10;
+double noiseValue[height][width];
+
+// elemente pentru matricea de vizualizare si matricea de proiectie
+float Obsx, Obsy, Obsz;
+float Refx = 0.0f, Refy = 0.0f, Refz = 100.0f;
+float Vx = 0.0, Vy = 0.0, Vz = 1.0;
+float alpha = 0.0f, beta = 0.0f, dist = 200.0f;
+float incr_alpha1 = 0.01f, incr_alpha2 = 0.01f;
+float winWidth = 800, winHeight = 600, znear = 0.1, fov = 90;
+
+// matrice
+glm::mat4 view, projection, matrUmbra;
+
+FastNoiseLite gen;
+double noise(double nx, double ny) { // if using fastnoiselite
+	// Rescale from -1.0:+1.0 to 0.0:1.0
+	return gen.GetNoise(nx, ny) / 2.0 + 0.5;
+}
+
+void noiseToHeightMap() {
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			double nx = x / width - 0.5,
+				ny = y / height - 0.5;
+			noiseValue[y][x] = noise(nx, ny);
+		}
+	}
+}
+
+void processNormalKeys(unsigned char key, int x, int y)
+{
+	switch (key) {
+	case '-':
+		dist -= 5.0;
+		break;
+	case '+':
+		dist += 5.0;
+		break;
+	}
+	if (key == 27)
+		exit(0);
+}
+void processSpecialKeys(int key, int xx, int yy)
+{
+	switch (key)
+	{
+	case GLUT_KEY_LEFT:
+		beta -= 0.01f;
+		break;
+	case GLUT_KEY_RIGHT:
+		beta += 0.01f;
+		break;
+	case GLUT_KEY_UP:
+		alpha += incr_alpha1;
+		if (abs(alpha - PI / 2) < 0.05)
+		{
+			incr_alpha1 = 0.f;
+		}
+		else
+		{
+			incr_alpha1 = 0.01f;
+		}
+		break;
+	case GLUT_KEY_DOWN:
+		alpha -= incr_alpha2;
+		if (abs(alpha + PI / 2) < 0.05)
+		{
+			incr_alpha2 = 0.f;
+		}
+		else
+		{
+			incr_alpha2 = 0.01f;
+		}
+		break;
+	}
+}
 
 void CreateVBO(void)
 {
+	std::vector<GLfloat> Vertices;
+
+	for (unsigned i = 0; i <= nr_patches - 1; i++)
+	{
+		for (unsigned j = 0; j <= nr_patches - 1; j++)
+		{
+			Vertices.push_back(-width / 2.0f + width * i / (float)nr_patches); // v.x
+			Vertices.push_back(0.0f); // v.y
+			Vertices.push_back(-height / 2.0f + height * j / (float)nr_patches); // v.z
+			Vertices.push_back(1.0f); // 4th coord
+
+			Vertices.push_back(i / (float)nr_patches); // u
+			Vertices.push_back(j / (float)nr_patches); // v
+
+			Vertices.push_back(-width / 2.0f + width * (i + 1) / (float)nr_patches); // v.x
+			Vertices.push_back(0.0f); // v.y
+			Vertices.push_back(-height / 2.0f + height * j / (float)nr_patches); // v.z
+			Vertices.push_back(1.0f); // 4th coord
+
+			Vertices.push_back((i + 1) / (float)nr_patches); // u
+			Vertices.push_back(j / (float)nr_patches); // v
+
+			Vertices.push_back(-width / 2.0f + width * i / (float)nr_patches); // v.x
+			Vertices.push_back(0.0f); // v.y
+			Vertices.push_back(-height / 2.0f + height * (j + 1) / (float)nr_patches); // v.z
+			Vertices.push_back(1.0f); // 4th coord
+
+			Vertices.push_back(i / (float)nr_patches); // u
+			Vertices.push_back((j + 1) / (float)nr_patches); // v
+
+			Vertices.push_back(-width / 2.0f + width * (i + 1) / (float)nr_patches); // v.x
+			Vertices.push_back(0.0f); // v.y
+			Vertices.push_back(-height / 2.0f + height * (j + 1) / (float)nr_patches); // v.z
+			Vertices.push_back(1.0f); // 4th coord
+
+			Vertices.push_back((i + 1) / (float)nr_patches); // u
+			Vertices.push_back((j + 1) / (float)nr_patches); // v
+		}
+	}
+	/*
 	// varfurile 
 	GLfloat Vertices[] = {
 		0.5f,  0.5f, 0.0f, 1.0f,
@@ -38,22 +167,23 @@ void CreateVBO(void)
 	  1.0f, 0.5f, 0.2f, 1.0f,
 	  1.0f, 0.5f, 0.2f, 1.0f,
 	};
+	*/
 
 	// se creeaza un buffer nou
 	glGenBuffers(1, &VboId);
 	// este setat ca buffer curent
 	glBindBuffer(GL_ARRAY_BUFFER, VboId);
 	// varfurile sunt "copiate" in bufferul curent
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, Vertices.size() * sizeof(GLfloat), &Vertices[0], GL_STATIC_DRAW);
 
 	// se creeaza / se leaga un VAO (Vertex Array Object) - util cand se utilizeaza mai multe VBO
 	glGenVertexArrays(1, &VaoId);
 	glBindVertexArray(VaoId);
 	// se activeaza lucrul cu atribute; atributul 0 = pozitie
 	glEnableVertexAttribArray(0);
-	// 
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
+	/*
 	// un nou buffer, pentru culoare
 	glGenBuffers(1, &ColorBufferId);
 	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferId);
@@ -61,6 +191,7 @@ void CreateVBO(void)
 	// atributul 1 =  culoare
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	*/
 }
 void DestroyVBO(void)
 {
@@ -87,18 +218,33 @@ void DestroyShaders(void)
 
 void Initialize(void)
 {
-	glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // culoarea de fond a ecranului
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // culoarea de fond a ecranului
 	CreateVBO();
 	CreateShaders();
+	viewLocation = glGetUniformLocation(ProgramId, "view");
+	projLocation = glGetUniformLocation(ProgramId, "projection");
+	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
+	viewPosLoc = glGetUniformLocation(ProgramId, "viewPos");
 }
 void RenderFunction(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT);     
 	glPatchParameteri(GL_PATCH_VERTICES, 4);
 
+	// reperul de vizualizare + proiectie
+	Obsx = Refx + dist * cos(alpha) * cos(beta);
+	Obsy = Refy + dist * cos(alpha) * sin(beta);
+	Obsz = Refz + dist * sin(alpha);
+	glm::vec3 Obs = glm::vec3(Obsx, Obsy, Obsz);
+	glm::vec3 PctRef = glm::vec3(Refx, Refy, Refz);
+	glm::vec3 Vert = glm::vec3(Vx, Vy, Vz);
+	view = glm::lookAt(Obs, PctRef, Vert);
+	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
+	projection = glm::infinitePerspective(fov, GLfloat(winWidth) / GLfloat(winHeight), znear);
+	glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
+
 	// Functiile de desenare
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-	glDrawArrays(GL_TRIANGLES, 3, 3);
+	glDrawArrays(GL_PATCHES, 0, 4 * nr_patches * nr_patches);
 
 	glFlush();
 }
@@ -117,7 +263,10 @@ int main(int argc, char* argv[])
 	glutCreateWindow("Grafica pe calculator - primul exemplu"); // titlul ferestrei
 	glewInit(); // nu uitati de initializare glew; trebuie initializat inainte de a a initializa desenarea
 	Initialize();
+	glutIdleFunc(RenderFunction);
 	glutDisplayFunc(RenderFunction);
+	glutKeyboardFunc(processNormalKeys);
+	glutSpecialFunc(processSpecialKeys);
 	glutCloseFunc(Cleanup);
 	glutMainLoop();
 }

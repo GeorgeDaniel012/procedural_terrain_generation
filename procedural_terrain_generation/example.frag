@@ -1,11 +1,11 @@
 // Shader-ul de fragment / Fragment shader 
 #version 410 core
 
-in vec4 ex_Color;
+in float Height;
 out vec4 out_Color;
 
 void main(void)
   {
-    vec4 col = (0.1, 0.1, 0.1, 1.0);
-    out_Color = col;
+    float h = (Height + 16)/64.0f;
+    out_Color = vec4(h, h, h, 1.0);
   }
