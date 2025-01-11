@@ -7,5 +7,5 @@ out vec4 out_Color;
 void main(void)
   {
     //float h = (Height + 16)/64.0f;
-    out_Color = vec4(0.5, 0.5, 0.5, 1.0);
+    out_Color = vec4(0.0, 0.0, 0.0, 1.0);
   }

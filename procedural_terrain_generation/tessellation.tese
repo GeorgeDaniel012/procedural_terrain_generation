@@ -1,18 +1,21 @@
+
 // tessellation evaluation shader
 #version 410 core
 
-layout (quads, fractional_odd_spacing, ccw) in;
+layout (quads, fractional_odd_spacing, cw) in;
 
 uniform sampler2D heightMap;  // the texture corresponding to our height map
 uniform mat4 model;           // the model matrix
 uniform mat4 view;            // the view matrix
 uniform mat4 projection;      // the projection matrix
 
+//in vec4 Pos1[];
 // received from Tessellation Control Shader - all texture coordinates for the patch vertices
 in vec2 TextureCoord[];
 
 // send to Fragment Shader for coloring
-out float Height;
+//out float Height;
+float Height;
 
 void main()
 {
@@ -33,10 +36,14 @@ void main()
     vec2 texCoord = (t1 - t0) * v + t0;
 
     // lookup texel at patch coordinate for height and scale + shift as desired
-    Height = texture(heightMap, texCoord).y * 64.0 - 16.0;
+    Height = texture(heightMap, texCoord).x * 64.0 - 16.0;
 
     // ----------------------------------------------------------------------
     // retrieve control point position coordinates
+    //vec4 p00 = Pos1[0];//gl_in[0].gl_Position;
+    //vec4 p01 = Pos1[1];//gl_in[1].gl_Position;
+    //vec4 p10 = Pos1[2];//gl_in[2].gl_Position;
+    //vec4 p11 = Pos1[3];//gl_in[3].gl_Position;
     vec4 p00 = gl_in[0].gl_Position;
     vec4 p01 = gl_in[1].gl_Position;
     vec4 p10 = gl_in[2].gl_Position;
@@ -58,5 +65,49 @@ void main()
     // ----------------------------------------------------------------------
     // output patch point position in clip space
     //gl_Position = projection * view * model * p;
-    gl_Position = projection * view * p;
+    gl_Position = p;
 }
+
+/*
+#version 410 core
+#extension GL_ARB_tessellation_shader : enable
+
+layout (quads, fractional_odd_spacing, ccw) in;
+
+uniform sampler2D heightMap;  // the texture corresponding to our height map
+uniform mat4 model;           // the model matrix
+uniform mat4 view;            // the view matrix
+uniform mat4 projection;      // the projection matrix
+
+void main()
+{
+    gl_Position = (gl_TessCoord.x * gl_in[0].gl_Position + gl_TessCoord.y * gl_in[1].gl_Position);// + gl_TessCoord.z * gl_in[2].gl_Position);
+}*/
+
+/*
+#version 410 core
+#extension GL_ARB_tessellation_shader : enable
+
+layout(quads, equal_spacing, ccw) in;
+
+in vec4 gl_Position[];
+in vec2 TextureCoord[];
+out vec2 FragTexCoord;
+
+void main()
+{
+    // Interpolate vertex positions
+    vec3 p0 = gl_in[0].gl_Position.xyz;
+    vec3 p1 = gl_in[1].gl_Position.xyz;
+    vec3 p2 = gl_in[2].gl_Position.xyz;
+    vec3 p3 = gl_in[3].gl_Position.xyz;
+
+    float u = gl_TessCoord.x;
+    float v = gl_TessCoord.y;
+
+    vec3 p = mix(mix(p0, p1, u), mix(p2, p3, u), v);
+    //gl_Position = vec4(p, 1.0);
+
+    // Interpolate texture coordinates
+    FragTexCoord = mix(mix(TextureCoord[0], TextureCoord[1], u), mix(TextureCoord[2], TextureCoord[3], u), v);
+}*/

@@ -11,10 +11,12 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 viewPos;
 
+//out vec4 Pos; 
 
 void main ()
 {
    //gl_Position = in_Position;
    gl_Position = projection*view*in_Position;
+   //Pos = gl_Position;
    TexCoord = in_Tex;
 }

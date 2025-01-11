@@ -54,6 +54,7 @@ double noise(double nx, double ny) { // if using fastnoiselite
 
 void noiseToHeightMap() {
 	glGenTextures(1, &texture);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -75,12 +76,11 @@ void noiseToHeightMap() {
 
 	int imageWidth = width, imageHeight = height;
 
-	unsigned char* image = SOIL_load_image("Heightmap.png", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGB);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	//unsigned char* image = SOIL_load_image("Heightmap.png", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &noiseValue);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	std::cout << "width" << width << " height" << height << "\n";
 	glGenerateMipmap(GL_TEXTURE_2D);
-
-
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &noiseValue);
 }
 
 void processNormalKeys(unsigned char key, int x, int y)
@@ -96,6 +96,7 @@ void processNormalKeys(unsigned char key, int x, int y)
 	if (key == 27)
 		exit(0);
 }
+
 void processSpecialKeys(int key, int xx, int yy)
 {
 	switch (key)
@@ -170,6 +171,12 @@ void CreateVBO(void)
 		}
 	}
 
+	Vertices.push_back(-1500.0f); Vertices.push_back(-1500.0f); Vertices.push_back(0.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f);
+	Vertices.push_back(1500.0f); Vertices.push_back(-1500.0f); Vertices.push_back(0.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f);
+	Vertices.push_back(1500.0f); Vertices.push_back(1500.0f); Vertices.push_back(0.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f);
+	Vertices.push_back(-1500.0f); Vertices.push_back(1500.0f); Vertices.push_back(0.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f);
+
+
 	// se creeaza un buffer nou
 	glGenBuffers(1, &VboId);
 	// este setat ca buffer curent
@@ -217,29 +224,31 @@ void DestroyShaders(void)
 
 void Initialize(void)
 {
-	glClearColor(0.7f, 1.0f, 1.0f, 1.0f); // culoarea de fond a ecranului
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // culoarea de fond a ecranului
 	CreateVBO();
-	CreateShaders();
 
 	noiseToHeightMap();
+	CreateShaders();
 
 	viewLocation = glGetUniformLocation(ProgramId, "view");
 	projLocation = glGetUniformLocation(ProgramId, "projection");
 	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
 	viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
 	heightMapLocation = glGetUniformLocation(ProgramId, "heightMap");
+
+	glEnable(GL_DEPTH_TEST);
 }
 void RenderFunction(void)
 {
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// reperul de vizualizare + proiectie
 	Obsx = Refx + dist * cos(alpha) * cos(beta);
 	Obsy = Refy + dist * cos(alpha) * sin(beta);
 	Obsz = Refz + dist * sin(alpha);
 
-	std::cout << "Observator: " << Obsx << " " << Obsy << " " << Obsz << "\n";
-	std::cout << "Ref: " << Refx << " " << Refy << " " << Refz << "\n";
+	//std::cout << "Observator: " << Obsx << " " << Obsy << " " << Obsz << "\n";
+	//std::cout << "Ref: " << Refx << " " << Refy << " " << Refz << "\n";
 
 	glm::vec3 Obs = glm::vec3(Obsx, Obsy, Obsz);
 	glm::vec3 PctRef = glm::vec3(Refx, Refy, Refz);
@@ -257,6 +266,12 @@ void RenderFunction(void)
 	//glDrawArrays(GL_TRIANGLE_FAN, 4 * nr_patches * nr_patches, 4);
 	//glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
+	GLenum error = glGetError();
+	if (error != GL_NO_ERROR) {
+		//std::cerr << "OpenGL Error: " << error << std::endl;
+	}
+
+	glutSwapBuffers();
 	glFlush();
 }
 void Cleanup(void)
