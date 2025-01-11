@@ -12,6 +12,8 @@
 #include "glm/gtx/transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include <vector>
+#include <iostream>
+#include "SOIL.h"			//	Biblioteca pentru texturare;
 
 //////////////////////////////////////
 
@@ -24,10 +26,12 @@ myMatrixLocation,
 matrUmbraLocation,
 viewLocation,
 projLocation, 
-viewPosLoc;
+viewPosLocation,
+heightMapLocation,
+texture;
 
 float PI = 3.141592;
-const int height = 100, width = 150;
+const int height = 257, width = 257;
 unsigned nr_patches = 10;
 double noiseValue[height][width];
 
@@ -35,9 +39,9 @@ double noiseValue[height][width];
 float Obsx, Obsy, Obsz;
 float Refx = 0.0f, Refy = 0.0f, Refz = 100.0f;
 float Vx = 0.0, Vy = 0.0, Vz = 1.0;
-float alpha = 0.0f, beta = 0.0f, dist = 200.0f;
+float alpha = 0.0f, beta = 0.0f, dist = 600.0f;
 float incr_alpha1 = 0.01f, incr_alpha2 = 0.01f;
-float winWidth = 800, winHeight = 600, znear = 0.1, fov = 90;
+float winWidth = 800, winHeight = 600, znear = 0.1, fov = 45;
 
 // matrice
 glm::mat4 view, projection, matrUmbra;
@@ -49,6 +53,18 @@ double noise(double nx, double ny) { // if using fastnoiselite
 }
 
 void noiseToHeightMap() {
+	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+	//	Desfasurarea imaginii pe orizontala/verticala in functie de parametrii de texturare;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	// Modul in care structura de texeli este aplicata pe cea de pixeli;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			double nx = x / width - 0.5,
@@ -56,6 +72,15 @@ void noiseToHeightMap() {
 			noiseValue[y][x] = noise(nx, ny);
 		}
 	}
+
+	int imageWidth = width, imageHeight = height;
+
+	unsigned char* image = SOIL_load_image("Heightmap.png", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &noiseValue);
 }
 
 void processNormalKeys(unsigned char key, int x, int y)
@@ -115,10 +140,10 @@ void CreateVBO(void)
 		for (unsigned j = 0; j <= nr_patches - 1; j++)
 		{
 			Vertices.push_back(-width / 2.0f + width * i / (float)nr_patches); // v.x
+			std::cout << -width / 2.0f + width * i / (float)nr_patches << " " << -height / 2.0f + height * j / (float)nr_patches << "\n";
 			Vertices.push_back(0.0f); // v.y
 			Vertices.push_back(-height / 2.0f + height * j / (float)nr_patches); // v.z
 			Vertices.push_back(1.0f); // 4th coord
-
 			Vertices.push_back(i / (float)nr_patches); // u
 			Vertices.push_back(j / (float)nr_patches); // v
 
@@ -126,7 +151,6 @@ void CreateVBO(void)
 			Vertices.push_back(0.0f); // v.y
 			Vertices.push_back(-height / 2.0f + height * j / (float)nr_patches); // v.z
 			Vertices.push_back(1.0f); // 4th coord
-
 			Vertices.push_back((i + 1) / (float)nr_patches); // u
 			Vertices.push_back(j / (float)nr_patches); // v
 
@@ -134,7 +158,6 @@ void CreateVBO(void)
 			Vertices.push_back(0.0f); // v.y
 			Vertices.push_back(-height / 2.0f + height * (j + 1) / (float)nr_patches); // v.z
 			Vertices.push_back(1.0f); // 4th coord
-
 			Vertices.push_back(i / (float)nr_patches); // u
 			Vertices.push_back((j + 1) / (float)nr_patches); // v
 
@@ -142,32 +165,10 @@ void CreateVBO(void)
 			Vertices.push_back(0.0f); // v.y
 			Vertices.push_back(-height / 2.0f + height * (j + 1) / (float)nr_patches); // v.z
 			Vertices.push_back(1.0f); // 4th coord
-
 			Vertices.push_back((i + 1) / (float)nr_patches); // u
 			Vertices.push_back((j + 1) / (float)nr_patches); // v
 		}
 	}
-	/*
-	// varfurile 
-	GLfloat Vertices[] = {
-		0.5f,  0.5f, 0.0f, 1.0f,
-		0.5f, -0.5f, 0.0f, 1.0f,
-		-0.5f, -0.5f, 0.0f, 1.0f,
-		-0.5f, -0.5f, 0.0f, 1.0f,
-		-0.5f,  0.5f, 0.0f, 1.0f,
-		0.5f,  0.5f, 0.0f, 1.0f
-	};
-
-	// culorile, ca atribute ale varfurilor
-	GLfloat Colors[] = {
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	};
-	*/
 
 	// se creeaza un buffer nou
 	glGenBuffers(1, &VboId);
@@ -179,19 +180,18 @@ void CreateVBO(void)
 	// se creeaza / se leaga un VAO (Vertex Array Object) - util cand se utilizeaza mai multe VBO
 	glGenVertexArrays(1, &VaoId);
 	glBindVertexArray(VaoId);
+
 	// se activeaza lucrul cu atribute; atributul 0 = pozitie
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	//glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);//(4 * sizeof(GLfloat)));
 
-	/*
-	// un nou buffer, pentru culoare
-	glGenBuffers(1, &ColorBufferId);
-	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferId);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Colors), Colors, GL_STATIC_DRAW);
-	// atributul 1 =  culoare
+	// se activeaza lucrul cu atribute; atributul 0 = pozitie
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	*/
+	//glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(4 * sizeof(GLfloat)));
+
+	glPatchParameteri(GL_PATCH_VERTICES, 4);
 }
 void DestroyVBO(void)
 {
@@ -199,7 +199,6 @@ void DestroyVBO(void)
 	glDisableVertexAttribArray(0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &ColorBufferId);
 	glDeleteBuffers(1, &VboId);
 
 	glBindVertexArray(0);
@@ -218,23 +217,30 @@ void DestroyShaders(void)
 
 void Initialize(void)
 {
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // culoarea de fond a ecranului
+	glClearColor(0.7f, 1.0f, 1.0f, 1.0f); // culoarea de fond a ecranului
 	CreateVBO();
 	CreateShaders();
+
+	noiseToHeightMap();
+
 	viewLocation = glGetUniformLocation(ProgramId, "view");
 	projLocation = glGetUniformLocation(ProgramId, "projection");
 	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
-	viewPosLoc = glGetUniformLocation(ProgramId, "viewPos");
+	viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
+	heightMapLocation = glGetUniformLocation(ProgramId, "heightMap");
 }
 void RenderFunction(void)
 {
-	glClear(GL_COLOR_BUFFER_BIT);     
-	glPatchParameteri(GL_PATCH_VERTICES, 4);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	// reperul de vizualizare + proiectie
 	Obsx = Refx + dist * cos(alpha) * cos(beta);
 	Obsy = Refy + dist * cos(alpha) * sin(beta);
 	Obsz = Refz + dist * sin(alpha);
+
+	std::cout << "Observator: " << Obsx << " " << Obsy << " " << Obsz << "\n";
+	std::cout << "Ref: " << Refx << " " << Refy << " " << Refz << "\n";
+
 	glm::vec3 Obs = glm::vec3(Obsx, Obsy, Obsz);
 	glm::vec3 PctRef = glm::vec3(Refx, Refy, Refz);
 	glm::vec3 Vert = glm::vec3(Vx, Vy, Vz);
@@ -242,9 +248,14 @@ void RenderFunction(void)
 	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 	projection = glm::infinitePerspective(fov, GLfloat(winWidth) / GLfloat(winHeight), znear);
 	glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
+	glUniform3f(viewPosLocation, Obsx, Obsy, Obsz);
+
+	glUniform1i(heightMapLocation, 0);
 
 	// Functiile de desenare
 	glDrawArrays(GL_PATCHES, 0, 4 * nr_patches * nr_patches);
+	//glDrawArrays(GL_TRIANGLE_FAN, 4 * nr_patches * nr_patches, 4);
+	//glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
 	glFlush();
 }

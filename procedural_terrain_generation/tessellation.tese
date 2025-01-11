@@ -57,5 +57,6 @@ void main()
 
     // ----------------------------------------------------------------------
     // output patch point position in clip space
-    gl_Position = projection * view * model * p;
+    //gl_Position = projection * view * model * p;
+    gl_Position = projection * view * p;
 }

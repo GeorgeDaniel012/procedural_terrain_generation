@@ -6,8 +6,15 @@ layout (location = 1) in vec2 in_Tex;
 
 out vec2 TexCoord;
 
+uniform mat4 myMatrix;
+uniform mat4 view;
+uniform mat4 projection;
+uniform vec3 viewPos;
+
+
 void main ()
 {
-   gl_Position = in_Position;
+   //gl_Position = in_Position;
+   gl_Position = projection*view*in_Position;
    TexCoord = in_Tex;
 }
