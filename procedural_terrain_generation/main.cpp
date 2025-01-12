@@ -31,20 +31,20 @@ heightMapLocation,
 texture;
 
 float PI = 3.141592;
-const int height = 257, width = 257;
-unsigned nr_patches = 10;
+const int height = 1024, width = 1024;
+unsigned nr_patches = 100;
 double noiseValue[height][width];
 
 // elemente pentru matricea de vizualizare si matricea de proiectie
 float Obsx, Obsy, Obsz;
 float Refx = 0.0f, Refy = 0.0f, Refz = 100.0f;
 float Vx = 0.0, Vy = 0.0, Vz = 1.0;
-float alpha = 0.0f, beta = 0.0f, dist = 600.0f;
+float alpha = 0.0f, beta = 0.0f, dist = 1000.0f;
 float incr_alpha1 = 0.01f, incr_alpha2 = 0.01f;
 float winWidth = 800, winHeight = 600, znear = 0.1, fov = 45;
 
 // matrice
-glm::mat4 view, projection, matrUmbra;
+glm::mat4 myMatrix, view, projection, matrUmbra;
 
 FastNoiseLite gen;
 double noise(double nx, double ny) { // if using fastnoiselite
@@ -66,20 +66,44 @@ void noiseToHeightMap() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+	//gen.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+	gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+	gen.SetFrequency(0.01f);
+	gen.SetFractalGain(0.1f);
+	gen.SetFractalLacunarity(3.0f);
+	gen.SetFractalOctaves(3);
+
+	//for (int x = 0; x < 1000; x++)
+	//	for (int y = 0; y < 1000; y++)
+	//		std::cout << noise(x, y);
+		
+
+	//gen.SetSeed(42);
+
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
-			double nx = x / width - 0.5,
-				ny = y / height - 0.5;
-			noiseValue[y][x] = noise(nx, ny);
+			float nx = x * width - 0.5;
+			float ny = y * height - 0.5;
+
+			double noiseVal = 1.0 * noise(nx, ny)//;
+					 + 0.5 * noise(2 * nx, 2 * ny)//;
+					 + 0.25 * noise(4 * nx, 4 * ny);
+
+			noiseValue[y][x] = noiseVal / 1.75 * 255;
+			
+			//std::cout << noiseValue[y][x] << " ";
 		}
 	}
 
-	int imageWidth = width, imageHeight = height;
 
-	//unsigned char* image = SOIL_load_image("Heightmap.png", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGB);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &noiseValue);
+
+	//int imageWidth = width, imageHeight = height;
+
+	//unsigned char* image = SOIL_load_image("iceland_heightmap.png", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, &noiseValue);
 	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-	std::cout << "width" << width << " height" << height << "\n";
+
+	//std::cout << "width" << width << " height" << height << "\n";
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
@@ -140,42 +164,40 @@ void CreateVBO(void)
 	{
 		for (unsigned j = 0; j <= nr_patches - 1; j++)
 		{
+			//std::cout << -width / 2.0f + width * i / (float)nr_patches << " " << -height / 2.0f + height * j / (float)nr_patches << "\n";
 			Vertices.push_back(-width / 2.0f + width * i / (float)nr_patches); // v.x
-			std::cout << -width / 2.0f + width * i / (float)nr_patches << " " << -height / 2.0f + height * j / (float)nr_patches << "\n";
-			Vertices.push_back(0.0f); // v.y
 			Vertices.push_back(-height / 2.0f + height * j / (float)nr_patches); // v.z
+			Vertices.push_back(0.0f); // v.y
+			
 			Vertices.push_back(1.0f); // 4th coord
 			Vertices.push_back(i / (float)nr_patches); // u
 			Vertices.push_back(j / (float)nr_patches); // v
 
 			Vertices.push_back(-width / 2.0f + width * (i + 1) / (float)nr_patches); // v.x
-			Vertices.push_back(0.0f); // v.y
 			Vertices.push_back(-height / 2.0f + height * j / (float)nr_patches); // v.z
+			Vertices.push_back(0.0f); // v.y
+			
 			Vertices.push_back(1.0f); // 4th coord
 			Vertices.push_back((i + 1) / (float)nr_patches); // u
 			Vertices.push_back(j / (float)nr_patches); // v
 
 			Vertices.push_back(-width / 2.0f + width * i / (float)nr_patches); // v.x
-			Vertices.push_back(0.0f); // v.y
 			Vertices.push_back(-height / 2.0f + height * (j + 1) / (float)nr_patches); // v.z
+			Vertices.push_back(0.0f); // v.y
+			
 			Vertices.push_back(1.0f); // 4th coord
 			Vertices.push_back(i / (float)nr_patches); // u
 			Vertices.push_back((j + 1) / (float)nr_patches); // v
 
 			Vertices.push_back(-width / 2.0f + width * (i + 1) / (float)nr_patches); // v.x
-			Vertices.push_back(0.0f); // v.y
 			Vertices.push_back(-height / 2.0f + height * (j + 1) / (float)nr_patches); // v.z
+			Vertices.push_back(0.0f); // v.y
+			
 			Vertices.push_back(1.0f); // 4th coord
 			Vertices.push_back((i + 1) / (float)nr_patches); // u
 			Vertices.push_back((j + 1) / (float)nr_patches); // v
 		}
 	}
-
-	Vertices.push_back(-1500.0f); Vertices.push_back(-1500.0f); Vertices.push_back(0.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f);
-	Vertices.push_back(1500.0f); Vertices.push_back(-1500.0f); Vertices.push_back(0.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f);
-	Vertices.push_back(1500.0f); Vertices.push_back(1500.0f); Vertices.push_back(0.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f);
-	Vertices.push_back(-1500.0f); Vertices.push_back(1500.0f); Vertices.push_back(0.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f); Vertices.push_back(1.0f);
-
 
 	// se creeaza un buffer nou
 	glGenBuffers(1, &VboId);
@@ -214,6 +236,7 @@ void DestroyVBO(void)
 
 void CreateShaders(void)
 {
+	// LoadShaders a fost modificat sa incarce si shadere pentru teselare
 	ProgramId = LoadShaders("example.vert", "example.frag", "tessellation.tesc", "tessellation.tese");
 	glUseProgram(ProgramId);
 }
@@ -224,23 +247,30 @@ void DestroyShaders(void)
 
 void Initialize(void)
 {
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // culoarea de fond a ecranului
+	glClearColor(0.7f, 0.3f, 1.0f, 1.0f); // culoarea de fond a ecranului
 	CreateVBO();
 
 	noiseToHeightMap();
 	CreateShaders();
 
+	myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
 	viewLocation = glGetUniformLocation(ProgramId, "view");
 	projLocation = glGetUniformLocation(ProgramId, "projection");
 	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
 	viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
 	heightMapLocation = glGetUniformLocation(ProgramId, "heightMap");
 
+	myMatrix = glm::mat4(1.0f);
+	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
+
 	glEnable(GL_DEPTH_TEST);
 }
 void RenderFunction(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_FRONT_AND_BACK);
 
 	// reperul de vizualizare + proiectie
 	Obsx = Refx + dist * cos(alpha) * cos(beta);
@@ -259,6 +289,7 @@ void RenderFunction(void)
 	glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
 	glUniform3f(viewPosLocation, Obsx, Obsy, Obsz);
 
+
 	glUniform1i(heightMapLocation, 0);
 
 	// Functiile de desenare
@@ -268,7 +299,7 @@ void RenderFunction(void)
 
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
-		//std::cerr << "OpenGL Error: " << error << std::endl;
+		std::cerr << "OpenGL Error: " << error << std::endl;
 	}
 
 	glutSwapBuffers();
@@ -286,7 +317,7 @@ int main(int argc, char* argv[])
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowPosition(100, 100); // pozitia initiala a ferestrei
 	glutInitWindowSize(600, 600); //dimensiunile ferestrei
-	glutCreateWindow("Grafica pe calculator - primul exemplu"); // titlul ferestrei
+	glutCreateWindow("Procedural Terrain Generation"); // titlul ferestrei
 	glewInit(); // nu uitati de initializare glew; trebuie initializat inainte de a a initializa desenarea
 	Initialize();
 	glutIdleFunc(RenderFunction);
