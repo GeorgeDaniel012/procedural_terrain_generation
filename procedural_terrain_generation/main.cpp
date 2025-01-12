@@ -41,7 +41,7 @@ float Refx = 0.0f, Refy = 0.0f, Refz = 100.0f;
 float Vx = 0.0, Vy = 0.0, Vz = 1.0;
 float alpha = 0.0f, beta = 0.0f, dist = 1000.0f;
 float incr_alpha1 = 0.01f, incr_alpha2 = 0.01f;
-float winWidth = 800, winHeight = 600, znear = 0.1, fov = 45;
+float winWidth = 1280, winHeight = 720, znear = 0.1, fov = 45;
 
 // matrice
 glm::mat4 myMatrix, view, projection, matrUmbra;
@@ -95,10 +95,7 @@ void noiseToHeightMap() {
 		}
 	}
 
-
-
 	//int imageWidth = width, imageHeight = height;
-
 	//unsigned char* image = SOIL_load_image("iceland_heightmap.png", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGB);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, &noiseValue);
 	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
@@ -110,12 +107,38 @@ void noiseToHeightMap() {
 void processNormalKeys(unsigned char key, int x, int y)
 {
 	switch (key) {
-	case '-':
-		dist -= 5.0;
-		break;
-	case '+':
-		dist += 5.0;
-		break;
+		// taste zoom
+		case '-':
+			dist -= 5.0;
+			break;
+		case '+':
+			dist += 5.0;
+			break;
+		// taste miscare camera
+		case 'w':
+			Obsx -= 5.0;
+			Refx -= 5.0;
+			break;
+		case 's':
+			Obsx += 5.0;
+			Refx += 5.0;
+			break;
+		case 'a':
+			Obsy -= 5.0;
+			Refy -= 5.0;
+			break;
+		case 'd':
+			Obsy += 5.0;
+			Refy += 5.0;
+			break;
+		case 'q':
+			Obsz += 5.0;
+			Refz += 5.0;
+			break;
+		case 'e':
+			Obsz -= 5.0;
+			Refz -= 5.0;
+			break;
 	}
 	if (key == 27)
 		exit(0);
@@ -125,34 +148,35 @@ void processSpecialKeys(int key, int xx, int yy)
 {
 	switch (key)
 	{
-	case GLUT_KEY_LEFT:
-		beta -= 0.01f;
-		break;
-	case GLUT_KEY_RIGHT:
-		beta += 0.01f;
-		break;
-	case GLUT_KEY_UP:
-		alpha += incr_alpha1;
-		if (abs(alpha - PI / 2) < 0.05)
-		{
-			incr_alpha1 = 0.f;
-		}
-		else
-		{
-			incr_alpha1 = 0.01f;
-		}
-		break;
-	case GLUT_KEY_DOWN:
-		alpha -= incr_alpha2;
-		if (abs(alpha + PI / 2) < 0.05)
-		{
-			incr_alpha2 = 0.f;
-		}
-		else
-		{
-			incr_alpha2 = 0.01f;
-		}
-		break;
+		// taste rotatie camera
+		case GLUT_KEY_LEFT:
+			beta -= 0.01f;
+			break;
+		case GLUT_KEY_RIGHT:
+			beta += 0.01f;
+			break;
+		case GLUT_KEY_UP:
+			alpha += incr_alpha1;
+			if (abs(alpha - PI / 2) < 0.05)
+			{
+				incr_alpha1 = 0.f;
+			}
+			else
+			{
+				incr_alpha1 = 0.01f;
+			}
+			break;
+		case GLUT_KEY_DOWN:
+			alpha -= incr_alpha2;
+			if (abs(alpha + PI / 2) < 0.05)
+			{
+				incr_alpha2 = 0.f;
+			}
+			else
+			{
+				incr_alpha2 = 0.01f;
+			}
+			break;
 	}
 }
 
@@ -316,7 +340,7 @@ int main(int argc, char* argv[])
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowPosition(100, 100); // pozitia initiala a ferestrei
-	glutInitWindowSize(600, 600); //dimensiunile ferestrei
+	glutInitWindowSize(winWidth, winHeight); //dimensiunile ferestrei
 	glutCreateWindow("Procedural Terrain Generation"); // titlul ferestrei
 	glewInit(); // nu uitati de initializare glew; trebuie initializat inainte de a a initializa desenarea
 	Initialize();
