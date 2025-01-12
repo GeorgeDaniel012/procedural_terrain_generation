@@ -18,10 +18,14 @@
 //////////////////////////////////////
 
 GLuint
-VaoId,
-VboId,
+TerrainVaoId,
+TerrainVboId,
+SphereVaoId,
+SphereVboId,
+SphereEboId,
 ColorBufferId,
 ProgramId,
+SphProgramId,
 myMatrixLocation,
 matrUmbraLocation,
 viewLocation,
@@ -42,6 +46,13 @@ float Vx = 0.0, Vy = 0.0, Vz = 1.0;
 float alpha = 0.0f, beta = 0.0f, dist = 1000.0f;
 float incr_alpha1 = 0.01f, incr_alpha2 = 0.01f;
 float winWidth = 1280, winHeight = 720, znear = 0.1, fov = 45;
+
+// variabile pt desenarea sferei
+float const U_MIN = -PI / 2, U_MAX = PI / 2, V_MIN = 0, V_MAX = 2 * PI;
+int const NR_PARR = 30, NR_MERID = 30;
+float step_u = (U_MAX - U_MIN) / NR_PARR, step_v = (V_MAX - V_MIN) / NR_MERID;
+float radius = 50;
+int index, index_aux;
 
 // matrice
 glm::mat4 myMatrix, view, projection, matrUmbra;
@@ -180,7 +191,78 @@ void processSpecialKeys(int key, int xx, int yy)
 	}
 }
 
-void CreateVBO(void)
+void CreateSphereVBO(void)
+{
+	glm::vec4 Vertices[(NR_PARR + 1) * NR_MERID];
+	//glm::vec3 Colors[(NR_PARR + 1) * NR_MERID];
+	//glm::vec3 Normals[(NR_PARR + 1) * NR_MERID];
+	GLushort Indices[2 * (NR_PARR + 1) * NR_MERID + 4 * (NR_PARR + 1) * NR_MERID];
+	for (int merid = 0; merid < NR_MERID; merid++)
+	{
+		for (int parr = 0; parr < NR_PARR + 1; parr++)
+		{
+			// implementarea reprezentarii parametrice 
+			float u = U_MIN + parr * step_u; // valori pentru u si v
+			float v = V_MIN + merid * step_v;
+			float x_vf = radius * cosf(u) * cosf(v); // coordonatele varfului corespunzator lui (u,v)
+			float y_vf = radius * cosf(u) * sinf(v);
+			float z_vf = radius * sinf(u);
+
+			// identificator ptr varf; coordonate + culoare + indice la parcurgerea meridianelor
+			index = merid * (NR_PARR + 1) + parr;
+			Vertices[index] = glm::vec4(x_vf, y_vf, z_vf, 1.0);
+			//Colors[index] = glm::vec3(0.96 + 0.1f * sinf(u) * cosf(v), 0.71 + 0.1f * cosf(u) * sinf(v), 0.1);
+			//Normals[index] = glm::vec3(x_vf, y_vf, z_vf);
+			Indices[index] = index;
+			// indice ptr acelasi varf la parcurgerea paralelelor
+			index_aux = parr * (NR_MERID)+merid;
+			Indices[(NR_PARR + 1) * NR_MERID + index_aux] = index;
+			// indicii pentru desenarea fetelor, pentru varful curent sunt definite 4 varfuri
+			if ((parr + 1) % (NR_PARR + 1) != 0) // varful considerat sa nu fie Polul Nord
+			{
+				int AUX = 2 * (NR_PARR + 1) * NR_MERID;
+				int index1 = index; // varful v considerat
+				int index2 = index + (NR_PARR + 1); // dreapta lui v, pe meridianul urmator
+				int index3 = index2 + 1;  // dreapta sus fata de v
+				int index4 = index + 1;  // deasupra lui v, pe acelasi meridian
+				if (merid == NR_MERID - 1)  // la ultimul meridian, trebuie revenit la meridianul initial
+				{
+					index2 = index2 % (NR_PARR + 1);
+					index3 = index3 % (NR_PARR + 1);
+				}
+				Indices[AUX + 4 * index] = index1;  // unele valori ale lui Indices, corespunzatoare Polului Nord, au valori neadecvate
+				Indices[AUX + 4 * index + 1] = index2;
+				Indices[AUX + 4 * index + 2] = index3;
+				Indices[AUX + 4 * index + 3] = index4;
+			}
+		}
+	};
+
+	glGenBuffers(1, &SphereVboId);
+	glBindBuffer(GL_ARRAY_BUFFER, SphereVboId);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), NULL, GL_STATIC_DRAW);
+
+	//glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertices), Vertices);
+	//glBufferSubData(GL_ARRAY_BUFFER, sizeof(Vertices), sizeof(Colors), Colors);
+	//glBufferSubData(GL_ARRAY_BUFFER, sizeof(Vertices) + sizeof(Colors), sizeof(Normals), Normals);
+
+	glGenBuffers(1, &SphereEboId);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEboId);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
+
+	glGenVertexArrays(1, &SphereVaoId);
+	glBindVertexArray(SphereVaoId);
+
+	// atributele; 
+	glEnableVertexAttribArray(0); // atributul 0 = pozitie
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+	//glEnableVertexAttribArray(1); // atributul 1 = culoare
+	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)sizeof(Vertices));
+	//glEnableVertexAttribArray(2); // atributul 2 = normala
+	//glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)(sizeof(Vertices) + sizeof(Colors)));
+}
+
+void CreateTerrainVBO(void)
 {
 	std::vector<GLfloat> Vertices;
 
@@ -224,15 +306,15 @@ void CreateVBO(void)
 	}
 
 	// se creeaza un buffer nou
-	glGenBuffers(1, &VboId);
+	glGenBuffers(1, &TerrainVboId);
 	// este setat ca buffer curent
-	glBindBuffer(GL_ARRAY_BUFFER, VboId);
+	glBindBuffer(GL_ARRAY_BUFFER, TerrainVboId);
 	// varfurile sunt "copiate" in bufferul curent
 	glBufferData(GL_ARRAY_BUFFER, Vertices.size() * sizeof(GLfloat), &Vertices[0], GL_STATIC_DRAW);
 
 	// se creeaza / se leaga un VAO (Vertex Array Object) - util cand se utilizeaza mai multe VBO
-	glGenVertexArrays(1, &VaoId);
-	glBindVertexArray(VaoId);
+	glGenVertexArrays(1, &TerrainVaoId);
+	glBindVertexArray(TerrainVaoId);
 
 	// se activeaza lucrul cu atribute; atributul 0 = pozitie
 	glEnableVertexAttribArray(0);
@@ -246,16 +328,19 @@ void CreateVBO(void)
 
 	glPatchParameteri(GL_PATCH_VERTICES, 4);
 }
+
 void DestroyVBO(void)
 {
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &VboId);
+	glDeleteBuffers(1, &TerrainVboId);
+	glDeleteBuffers(1, &SphereVboId);
 
 	glBindVertexArray(0);
-	glDeleteVertexArrays(1, &VaoId);
+	glDeleteVertexArrays(1, &TerrainVaoId);
+	glDeleteVertexArrays(1, &SphereVaoId);
 }
 
 void CreateShaders(void)
@@ -264,26 +349,44 @@ void CreateShaders(void)
 	ProgramId = LoadShaders("example.vert", "example.frag", "tessellation.tesc", "tessellation.tese");
 	glUseProgram(ProgramId);
 }
+
+void CreateSphShaders(void)
+{
+	ProgramId = LoadShaders("sphere.vert", "sphere.frag");
+	glUseProgram(SphProgramId);
+}
+
 void DestroyShaders(void)
 {
 	glDeleteProgram(ProgramId);
+	glDeleteProgram(SphProgramId);
 }
 
 void Initialize(void)
 {
-	glClearColor(0.7f, 0.3f, 1.0f, 1.0f); // culoarea de fond a ecranului
-	CreateVBO();
+	glClearColor(0.5f, 0.3f, 0.9f, 1.0f); // culoarea de fond a ecranului
+	CreateSphereVBO();
+	//CreateTerrainVBO();
 
 	noiseToHeightMap();
-	CreateShaders();
 
+	/*
+	CreateShaders();
 	myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
 	viewLocation = glGetUniformLocation(ProgramId, "view");
 	projLocation = glGetUniformLocation(ProgramId, "projection");
 	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
 	viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
 	heightMapLocation = glGetUniformLocation(ProgramId, "heightMap");
-
+	*/
+	
+	CreateSphShaders();
+	myMatrixLocation = glGetUniformLocation(SphProgramId, "myMatrix");
+	viewLocation = glGetUniformLocation(SphProgramId, "view");
+	projLocation = glGetUniformLocation(SphProgramId, "projection");
+	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
+	viewPosLocation = glGetUniformLocation(SphProgramId, "viewPos");
+	
 	myMatrix = glm::mat4(1.0f);
 	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 
@@ -291,8 +394,18 @@ void Initialize(void)
 }
 void RenderFunction(void)
 {
+	//glUseProgram(ProgramId);
+
+	glUseProgram(SphProgramId);
+	glBindVertexArray(SphereVaoId);
+	glBindBuffer(GL_ARRAY_BUFFER, SphereVboId);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEboId);
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	//glBindVertexArray(TerrainVaoId);
+	//glBindBuffer(GL_ARRAY_BUFFER, TerrainVboId);
 	//glEnable(GL_CULL_FACE);
 	//glCullFace(GL_FRONT_AND_BACK);
 
@@ -313,14 +426,30 @@ void RenderFunction(void)
 	glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
 	glUniform3f(viewPosLocation, Obsx, Obsy, Obsz);
 
-
-	glUniform1i(heightMapLocation, 0);
+	//glUniform1i(heightMapLocation, 0);
 
 	// Functiile de desenare
-	glDrawArrays(GL_PATCHES, 0, 4 * nr_patches * nr_patches);
+	//glDrawArrays(GL_PATCHES, 0, 4 * nr_patches * nr_patches);
+	// 
 	//glDrawArrays(GL_TRIANGLE_FAN, 4 * nr_patches * nr_patches, 4);
 	//glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	
+	
+	//glUseProgram(SphProgramId);
+	//glBindVertexArray(SphereVaoId);
+	//glBindBuffer(GL_ARRAY_BUFFER, SphereVboId);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEboId);
 
+	for (int patr = 0; patr < (NR_PARR + 1) * NR_MERID; patr++)
+	{
+		if ((patr + 1) % (NR_PARR + 1) != 0)
+			glDrawElements(
+				GL_QUADS,
+				4,
+				GL_UNSIGNED_SHORT,
+				(GLvoid*)((2 * (NR_PARR + 1) * (NR_MERID)+4 * patr) * sizeof(GLushort)));
+	}
+	
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
 		std::cerr << "OpenGL Error: " << error << std::endl;
@@ -329,6 +458,7 @@ void RenderFunction(void)
 	glutSwapBuffers();
 	glFlush();
 }
+
 void Cleanup(void)
 {
 	DestroyShaders();
