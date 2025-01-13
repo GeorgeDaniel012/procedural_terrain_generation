@@ -46,7 +46,7 @@ texture;
 float PI = 3.141592;
 const int height = 1024, width = 1024;
 unsigned nr_patches = 100;
-double noiseValue[height][width];
+GLubyte noiseValue[height][width];
 
 // elemente pentru matricea de vizualizare si matricea de proiectie
 float Obsx, Obsy, Obsz;
@@ -100,7 +100,7 @@ void noiseToHeightMap() {
 
 	//gen.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
 	gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-	gen.SetFrequency(0.01f);
+	gen.SetFrequency(0.00001f);
 	gen.SetFractalGain(0.1f);
 	gen.SetFractalLacunarity(3.0f);
 	gen.SetFractalOctaves(3);
