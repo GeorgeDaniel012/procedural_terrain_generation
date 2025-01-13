@@ -27,10 +27,14 @@ ColorBufferId,
 ProgramId,
 SphProgramId,
 myMatrixLocation,
+myMatrixLocation2,
 matrUmbraLocation,
 viewLocation,
+viewLocation2,
 projLocation, 
+projLocation2,
 viewPosLocation,
+viewPosLocation2,
 heightMapLocation,
 texture;
 
@@ -352,7 +356,7 @@ void CreateShaders(void)
 
 void CreateSphShaders(void)
 {
-	ProgramId = LoadShaders("sphere.vert", "sphere.frag");
+	SphProgramId = LoadShaders("sphere.vert", "sphere.frag");
 	glUseProgram(SphProgramId);
 }
 
@@ -362,15 +366,35 @@ void DestroyShaders(void)
 	glDeleteProgram(SphProgramId);
 }
 
+void UseTerrainShader(void) {
+	glUseProgram(ProgramId);
+	glBindVertexArray(TerrainVaoId);
+	glBindBuffer(GL_ARRAY_BUFFER, TerrainVboId);
+	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
+	glUniform3f(viewPosLocation, Obsx, Obsy, Obsz);
+	glUniform1i(heightMapLocation, 0);
+	glutPostRedisplay();
+}
+
+void UseSphShader(void) {
+	glUseProgram(SphProgramId);
+	glBindVertexArray(SphereVaoId);
+	glBindBuffer(GL_ARRAY_BUFFER, SphereVboId);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEboId);
+	glUniformMatrix4fv(viewLocation2, 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(projLocation2, 1, GL_FALSE, &projection[0][0]);
+	glutPostRedisplay();
+}
+
 void Initialize(void)
 {
 	glClearColor(0.5f, 0.3f, 0.9f, 1.0f); // culoarea de fond a ecranului
+	
+	CreateTerrainVBO();
 	CreateSphereVBO();
-	//CreateTerrainVBO();
-
 	noiseToHeightMap();
-
-	/*
+	
 	CreateShaders();
 	myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
 	viewLocation = glGetUniformLocation(ProgramId, "view");
@@ -378,34 +402,25 @@ void Initialize(void)
 	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
 	viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
 	heightMapLocation = glGetUniformLocation(ProgramId, "heightMap");
-	*/
 	
 	CreateSphShaders();
-	myMatrixLocation = glGetUniformLocation(SphProgramId, "myMatrix");
-	viewLocation = glGetUniformLocation(SphProgramId, "view");
-	projLocation = glGetUniformLocation(SphProgramId, "projection");
-	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
-	viewPosLocation = glGetUniformLocation(SphProgramId, "viewPos");
+	myMatrixLocation2 = glGetUniformLocation(SphProgramId, "myMatrix");
+	viewLocation2 = glGetUniformLocation(SphProgramId, "view");
+	projLocation2 = glGetUniformLocation(SphProgramId, "projection");
+	//matrUmbraLocation = glGetUniformLocation(SphProgramId, "matrUmbra");
+	//viewPosLocation2 = glGetUniformLocation(SphProgramId, "viewPos");
 	
 	myMatrix = glm::mat4(1.0f);
 	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
+	//glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &myMatrix[0][0]);
 
 	glEnable(GL_DEPTH_TEST);
 }
 void RenderFunction(void)
 {
-	//glUseProgram(ProgramId);
-
-	glUseProgram(SphProgramId);
-	glBindVertexArray(SphereVaoId);
-	glBindBuffer(GL_ARRAY_BUFFER, SphereVboId);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEboId);
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	//glBindVertexArray(TerrainVaoId);
-	//glBindBuffer(GL_ARRAY_BUFFER, TerrainVboId);
 	//glEnable(GL_CULL_FACE);
 	//glCullFace(GL_FRONT_AND_BACK);
 
@@ -421,25 +436,16 @@ void RenderFunction(void)
 	glm::vec3 PctRef = glm::vec3(Refx, Refy, Refz);
 	glm::vec3 Vert = glm::vec3(Vx, Vy, Vz);
 	view = glm::lookAt(Obs, PctRef, Vert);
-	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 	projection = glm::infinitePerspective(fov, GLfloat(winWidth) / GLfloat(winHeight), znear);
-	glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
-	glUniform3f(viewPosLocation, Obsx, Obsy, Obsz);
-
-	//glUniform1i(heightMapLocation, 0);
-
+	
+	UseTerrainShader();
 	// Functiile de desenare
-	//glDrawArrays(GL_PATCHES, 0, 4 * nr_patches * nr_patches);
+	glDrawArrays(GL_PATCHES, 0, 4 * nr_patches * nr_patches);
 	// 
 	//glDrawArrays(GL_TRIANGLE_FAN, 4 * nr_patches * nr_patches, 4);
 	//glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-	
-	
-	//glUseProgram(SphProgramId);
-	//glBindVertexArray(SphereVaoId);
-	//glBindBuffer(GL_ARRAY_BUFFER, SphereVboId);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEboId);
 
+	UseSphShader();
 	for (int patr = 0; patr < (NR_PARR + 1) * NR_MERID; patr++)
 	{
 		if ((patr + 1) % (NR_PARR + 1) != 0)
