@@ -36,6 +36,8 @@ projLocation2,
 viewPosLocation,
 viewPosLocation2,
 heightMapLocation,
+lightColorLoc, 
+lightPosLoc,
 texture;
 
 float PI = 3.141592;
@@ -244,7 +246,7 @@ void CreateSphereVBO(void)
 
 	glGenBuffers(1, &SphereVboId);
 	glBindBuffer(GL_ARRAY_BUFFER, SphereVboId);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), NULL, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
 
 	//glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertices), Vertices);
 	//glBufferSubData(GL_ARRAY_BUFFER, sizeof(Vertices), sizeof(Colors), Colors);
@@ -372,6 +374,8 @@ void UseTerrainShader(void) {
 	glBindBuffer(GL_ARRAY_BUFFER, TerrainVboId);
 	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
+	myMatrix = glm::mat4(1.0f);
+	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 	glUniform3f(viewPosLocation, Obsx, Obsy, Obsz);
 	glUniform1i(heightMapLocation, 0);
 	glutPostRedisplay();
@@ -384,17 +388,24 @@ void UseSphShader(void) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEboId);
 	glUniformMatrix4fv(viewLocation2, 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projLocation2, 1, GL_FALSE, &projection[0][0]);
+	myMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 600.0f, 100.0f));
+	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &myMatrix[0][0]);
 	glutPostRedisplay();
+}
+
+void SphereMovement(void) {
+	//glUniform3f(lightColorLoc, 1.0f, 0.99f, 0.64f);
+	//glUniform3f(lightPosLoc, 0.f, 100.f, 100.f);
 }
 
 void Initialize(void)
 {
 	glClearColor(0.5f, 0.3f, 0.9f, 1.0f); // culoarea de fond a ecranului
-	
-	CreateTerrainVBO();
 	CreateSphereVBO();
+	CreateTerrainVBO();
 	noiseToHeightMap();
 	
+	myMatrix = glm::mat4(1.0f);
 	CreateShaders();
 	myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
 	viewLocation = glGetUniformLocation(ProgramId, "view");
@@ -402,6 +413,7 @@ void Initialize(void)
 	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
 	viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
 	heightMapLocation = glGetUniformLocation(ProgramId, "heightMap");
+	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 	
 	CreateSphShaders();
 	myMatrixLocation2 = glGetUniformLocation(SphProgramId, "myMatrix");
@@ -409,10 +421,7 @@ void Initialize(void)
 	projLocation2 = glGetUniformLocation(SphProgramId, "projection");
 	//matrUmbraLocation = glGetUniformLocation(SphProgramId, "matrUmbra");
 	//viewPosLocation2 = glGetUniformLocation(SphProgramId, "viewPos");
-	
-	myMatrix = glm::mat4(1.0f);
-	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
-	//glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &myMatrix[0][0]);
+	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &myMatrix[0][0]);
 
 	glEnable(GL_DEPTH_TEST);
 }
@@ -481,6 +490,7 @@ int main(int argc, char* argv[])
 	glewInit(); // nu uitati de initializare glew; trebuie initializat inainte de a a initializa desenarea
 	Initialize();
 	glutIdleFunc(RenderFunction);
+	//glutIdleFunc(SphereMovement);
 	glutDisplayFunc(RenderFunction);
 	glutKeyboardFunc(processNormalKeys);
 	glutSpecialFunc(processSpecialKeys);
