@@ -17,6 +17,9 @@
 
 //////////////////////////////////////
 
+const int targetFPS = 60;
+const int frameInterval = 1000 / targetFPS;
+
 GLuint
 TerrainVaoId,
 TerrainVboId,
@@ -60,8 +63,20 @@ float step_u = (U_MAX - U_MIN) / NR_PARR, step_v = (V_MAX - V_MIN) / NR_MERID;
 float radius = 50;
 int index, index_aux;
 
+// variabile pentru traiectoria sferei
+float X0 = 0.0f, Y0 = 600.0f, Z0 = 100.0f; //poz initiala
+// viteza = 10 m/s, unghi = 30deg
+float vy = - 55 * cos(PI / 7),
+vz = 55 * sin(PI / 7),
+vx = 0;
+	//10 * cos(PI / 6) * sin(PI / 6); //velocitate miscare
+//-5 * PI / 6
+float currX, currY, currZ; //pozitia curenta
+float g = 2.0f; // gravitatie
+float t = 0.0f, startTime = 0.0f; // timp
+
 // matrice
-glm::mat4 myMatrix, view, projection, matrUmbra;
+glm::mat4 myMatrix, sphMatrix, view, projection, matrUmbra;
 
 FastNoiseLite gen;
 double noise(double nx, double ny) { // if using fastnoiselite
@@ -382,20 +397,40 @@ void UseTerrainShader(void) {
 }
 
 void UseSphShader(void) {
+
 	glUseProgram(SphProgramId);
 	glBindVertexArray(SphereVaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, SphereVboId);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEboId);
+
 	glUniformMatrix4fv(viewLocation2, 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projLocation2, 1, GL_FALSE, &projection[0][0]);
-	myMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 600.0f, 100.0f));
-	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &myMatrix[0][0]);
+
+	sphMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(currX, currY, currZ));
+	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &sphMatrix[0][0]);
 	glutPostRedisplay();
 }
 
 void SphereMovement(void) {
 	//glUniform3f(lightColorLoc, 1.0f, 0.99f, 0.64f);
 	//glUniform3f(lightPosLoc, 0.f, 100.f, 100.f);
+	if (currY >= -720.f && currY <= -710.f) {
+		startTime = t;
+	}
+	t = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - startTime;
+	std::cout << t << std::endl;
+	currX = X0 + vx * t;
+	currY = Y0 + vy * t;
+	currZ = Z0 + vz * t - g / 2 * t * t;
+}
+
+void UpdateFunc(int val) {
+
+	SphereMovement();
+
+	glutPostRedisplay();
+
+	glutTimerFunc(frameInterval, UpdateFunc, 0);
 }
 
 void Initialize(void)
@@ -415,16 +450,18 @@ void Initialize(void)
 	heightMapLocation = glGetUniformLocation(ProgramId, "heightMap");
 	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 	
+	sphMatrix = glm::mat4(1.0f);
 	CreateSphShaders();
 	myMatrixLocation2 = glGetUniformLocation(SphProgramId, "myMatrix");
 	viewLocation2 = glGetUniformLocation(SphProgramId, "view");
 	projLocation2 = glGetUniformLocation(SphProgramId, "projection");
 	//matrUmbraLocation = glGetUniformLocation(SphProgramId, "matrUmbra");
 	//viewPosLocation2 = glGetUniformLocation(SphProgramId, "viewPos");
-	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &myMatrix[0][0]);
+	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &sphMatrix[0][0]);
 
 	glEnable(GL_DEPTH_TEST);
 }
+
 void RenderFunction(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -448,11 +485,7 @@ void RenderFunction(void)
 	projection = glm::infinitePerspective(fov, GLfloat(winWidth) / GLfloat(winHeight), znear);
 	
 	UseTerrainShader();
-	// Functiile de desenare
 	glDrawArrays(GL_PATCHES, 0, 4 * nr_patches * nr_patches);
-	// 
-	//glDrawArrays(GL_TRIANGLE_FAN, 4 * nr_patches * nr_patches, 4);
-	//glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
 	UseSphShader();
 	for (int patr = 0; patr < (NR_PARR + 1) * NR_MERID; patr++)
@@ -490,10 +523,10 @@ int main(int argc, char* argv[])
 	glewInit(); // nu uitati de initializare glew; trebuie initializat inainte de a a initializa desenarea
 	Initialize();
 	glutIdleFunc(RenderFunction);
-	//glutIdleFunc(SphereMovement);
 	glutDisplayFunc(RenderFunction);
 	glutKeyboardFunc(processNormalKeys);
 	glutSpecialFunc(processSpecialKeys);
+	glutTimerFunc(frameInterval, UpdateFunc, 0);
 	glutCloseFunc(Cleanup);
 	glutMainLoop();
 }
