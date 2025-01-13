@@ -17,7 +17,7 @@
 
 //////////////////////////////////////
 
-const int targetFPS = 60;
+const int targetFPS = 60;//60;
 const int frameInterval = 1000 / targetFPS;
 
 GLuint
@@ -39,6 +39,7 @@ projLocation2,
 viewPosLocation,
 viewPosLocation2,
 heightMapLocation,
+isDarkLocation,
 lightColorLoc, 
 lightPosLoc,
 texture;
@@ -71,9 +72,11 @@ vz = 55 * sin(PI / 7),
 vx = 0;
 	//10 * cos(PI / 6) * sin(PI / 6); //velocitate miscare
 //-5 * PI / 6
+bool isDark = false;
 float currX, currY, currZ; //pozitia curenta
 float g = 2.0f; // gravitatie
 float t = 0.0f, startTime = 0.0f; // timp
+int nrRotations = 0; // numarul de rotatii complete
 
 // matrice
 glm::mat4 myMatrix, sphMatrix, view, projection, matrUmbra;
@@ -408,17 +411,21 @@ void UseSphShader(void) {
 
 	sphMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(currX, currY, currZ));
 	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &sphMatrix[0][0]);
+
+	glUniform1i(isDarkLocation, isDark);
 	glutPostRedisplay();
 }
 
 void SphereMovement(void) {
 	//glUniform3f(lightColorLoc, 1.0f, 0.99f, 0.64f);
 	//glUniform3f(lightPosLoc, 0.f, 100.f, 100.f);
-	if (currY >= -720.f && currY <= -710.f) {
+	if (currY >= -600.f && currY <= -570.f) {
 		startTime = t;
+		isDark = !isDark;
+		nrRotations++;
 	}
-	t = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - startTime;
-	std::cout << t << std::endl;
+	t = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - startTime * nrRotations;
+	//std::cout << t << " rotations: " << nrRotations << std::endl;
 	currX = X0 + vx * t;
 	currY = Y0 + vy * t;
 	currZ = Z0 + vz * t - g / 2 * t * t;
@@ -435,7 +442,6 @@ void UpdateFunc(int val) {
 
 void Initialize(void)
 {
-	glClearColor(0.5f, 0.3f, 0.9f, 1.0f); // culoarea de fond a ecranului
 	CreateSphereVBO();
 	CreateTerrainVBO();
 	noiseToHeightMap();
@@ -455,6 +461,7 @@ void Initialize(void)
 	myMatrixLocation2 = glGetUniformLocation(SphProgramId, "myMatrix");
 	viewLocation2 = glGetUniformLocation(SphProgramId, "view");
 	projLocation2 = glGetUniformLocation(SphProgramId, "projection");
+	isDarkLocation = glGetUniformLocation(SphProgramId, "isDark");
 	//matrUmbraLocation = glGetUniformLocation(SphProgramId, "matrUmbra");
 	//viewPosLocation2 = glGetUniformLocation(SphProgramId, "viewPos");
 	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &sphMatrix[0][0]);
@@ -464,6 +471,25 @@ void Initialize(void)
 
 void RenderFunction(void)
 {
+	// culoarea de fond a ecranului
+	if (!isDark) { // cand e zi/lumina
+		//glClearColor(0.13f, 0.43f, 0.93f, 1.0f);
+
+		// clamp -570:570 to 0:1
+		// /570 -> -1:1
+		// +1 -> 0:2
+		// /2 -> 0:1
+
+		float clampedCurrY = (currY / 570 + 1) / 2;
+
+		glClearColor(0.39f * clampedCurrY + 0.15f * cos((clampedCurrY + 0.1) * PI) - 0.05f, 0.43f * sin(clampedCurrY * PI) + 0.075f * cos(clampedCurrY * PI) - 0.05f, 0.93f * sin(clampedCurrY * PI), 1.0f); 
+
+		std::cout << currY << ' ' << clampedCurrY << ' ' << 0.3f * cos(clampedCurrY * PI) << ' ' << 0.43f * sin(clampedCurrY * PI) << std::endl;
+	}
+	else { // cand e noapte/intuneric
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	}
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -497,6 +523,7 @@ void RenderFunction(void)
 				GL_UNSIGNED_SHORT,
 				(GLvoid*)((2 * (NR_PARR + 1) * (NR_MERID)+4 * patr) * sizeof(GLushort)));
 	}
+	//std::cout << isDark;
 	
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
