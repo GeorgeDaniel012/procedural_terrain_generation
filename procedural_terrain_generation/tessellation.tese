@@ -13,6 +13,8 @@ in vec2 TextureCoord[];
 
 // send to Fragment Shader for coloring
 out float Height;
+out vec2 TexCoords;
+
 
 void main()
 {
@@ -31,6 +33,7 @@ void main()
     vec2 t0 = (t01 - t00) * u + t00;
     vec2 t1 = (t11 - t10) * u + t10;
     vec2 texCoord = (t1 - t0) * v + t0;
+    TexCoords = texCoord;
 
     // lookup texel at patch coordinate for height and scale + shift as desired
     Height = texture(heightMap, texCoord).r * 64.0 - 16.0; //64.0, 16.0

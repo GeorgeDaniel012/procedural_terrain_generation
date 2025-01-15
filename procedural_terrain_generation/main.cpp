@@ -42,6 +42,10 @@ heightMapLocation,
 isDarkLocation,
 lightColorLoc, 
 lightPosLoc,
+uTexelSizeLocation,
+heightScaleLocation,
+lightColorLoc,
+lightPosLoc,
 texture;
 
 float PI = 3.141592;
@@ -77,6 +81,9 @@ float currX, currY, currZ; //pozitia curenta
 float g = 2.0f; // gravitatie
 float t = 0.0f, startTime = 0.0f; // timp
 int nrRotations = 0; // numarul de rotatii complete
+
+// variabile pt iluminare
+float uTexelSize = 1.0f / width, heightScale = 100.0f;
 
 // matrice
 glm::mat4 myMatrix, sphMatrix, view, projection, matrUmbra;
@@ -396,6 +403,10 @@ void UseTerrainShader(void) {
 	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 	glUniform3f(viewPosLocation, Obsx, Obsy, Obsz);
 	glUniform1i(heightMapLocation, 0);
+	glUniform1f(uTexelSizeLocation, uTexelSize);
+	glUniform1f(heightScaleLocation, heightScale);
+	glUniform3f(lightPosLoc, currX, currY, currZ);
+	glUniform3f(lightColorLoc, );
 	glutPostRedisplay();
 }
 
@@ -454,6 +465,10 @@ void Initialize(void)
 	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
 	viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
 	heightMapLocation = glGetUniformLocation(ProgramId, "heightMap");
+	uTexelSizeLocation = glGetUniformLocation(ProgramId, "uTexelSize");
+	heightScaleLocation = glGetUniformLocation(ProgramId, "HEIGHT_SCALE");
+	lightColorLoc = glGetUniformLocation(ProgramId, "lightColor");
+	lightPosLoc = glGetUniformLocation(ProgramId, "inLightPos");
 	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 	
 	sphMatrix = glm::mat4(1.0f);
