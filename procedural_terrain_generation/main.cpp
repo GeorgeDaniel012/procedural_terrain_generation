@@ -31,21 +31,18 @@ ProgramId,
 SphProgramId,
 myMatrixLocation,
 myMatrixLocation2,
-matrUmbraLocation,
 viewLocation,
 viewLocation2,
-projLocation, 
+projLocation,
 projLocation2,
 viewPosLocation,
 viewPosLocation2,
 heightMapLocation,
 isDarkLocation,
-lightColorLoc, 
+isDarkLocation2,
 lightPosLoc,
 uTexelSizeLocation,
 heightScaleLocation,
-lightColorLoc,
-lightPosLoc,
 texture;
 
 float PI = 3.141592;
@@ -72,10 +69,8 @@ int index, index_aux;
 float X0 = 0.0f, Y0 = 600.0f, Z0 = 100.0f; //poz initiala
 // viteza = 10 m/s, unghi = 30deg
 float vy = - 55 * cos(PI / 7),
-vz = 55 * sin(PI / 7),
-vx = 0;
-	//10 * cos(PI / 6) * sin(PI / 6); //velocitate miscare
-//-5 * PI / 6
+	vz = 55 * sin(PI / 7),
+	vx = 0;
 bool isDark = false;
 float currX, currY, currZ; //pozitia curenta
 float g = 2.0f; // gravitatie
@@ -86,10 +81,10 @@ int nrRotations = 0; // numarul de rotatii complete
 float uTexelSize = 1.0f / width, heightScale = 100.0f;
 
 // matrice
-glm::mat4 myMatrix, sphMatrix, view, projection, matrUmbra;
+glm::mat4 myMatrix, sphMatrix, view, projection;
 
 FastNoiseLite gen;
-double noise(double nx, double ny) { // if using fastnoiselite
+double noise(double nx, double ny) {
 	// Rescale from -1.0:+1.0 to 0.0:1.0
 	return gen.GetNoise(nx, ny) / 2.0 + 0.5;
 }
@@ -127,8 +122,8 @@ void noiseToHeightMap() {
 			float nx = x * width - 0.5;
 			float ny = y * height - 0.5;
 
-			double noiseVal = 1.0 * noise(nx, ny)//;
-					 + 0.5 * noise(2 * nx, 2 * ny)//;
+			double noiseVal = 1.0 * noise(nx, ny)
+					 + 0.5 * noise(2 * nx, 2 * ny)
 					 + 0.25 * noise(4 * nx, 4 * ny);
 
 			noiseValue[y][x] = noiseVal / 1.75 * 255;
@@ -225,25 +220,21 @@ void processSpecialKeys(int key, int xx, int yy)
 void CreateSphereVBO(void)
 {
 	glm::vec4 Vertices[(NR_PARR + 1) * NR_MERID];
-	//glm::vec3 Colors[(NR_PARR + 1) * NR_MERID];
-	//glm::vec3 Normals[(NR_PARR + 1) * NR_MERID];
 	GLushort Indices[2 * (NR_PARR + 1) * NR_MERID + 4 * (NR_PARR + 1) * NR_MERID];
 	for (int merid = 0; merid < NR_MERID; merid++)
 	{
 		for (int parr = 0; parr < NR_PARR + 1; parr++)
 		{
 			// implementarea reprezentarii parametrice 
-			float u = U_MIN + parr * step_u; // valori pentru u si v
+			float u = U_MIN + parr * step_u;
 			float v = V_MIN + merid * step_v;
-			float x_vf = radius * cosf(u) * cosf(v); // coordonatele varfului corespunzator lui (u,v)
+			float x_vf = radius * cosf(u) * cosf(v);
 			float y_vf = radius * cosf(u) * sinf(v);
 			float z_vf = radius * sinf(u);
 
 			// identificator ptr varf; coordonate + culoare + indice la parcurgerea meridianelor
 			index = merid * (NR_PARR + 1) + parr;
 			Vertices[index] = glm::vec4(x_vf, y_vf, z_vf, 1.0);
-			//Colors[index] = glm::vec3(0.96 + 0.1f * sinf(u) * cosf(v), 0.71 + 0.1f * cosf(u) * sinf(v), 0.1);
-			//Normals[index] = glm::vec3(x_vf, y_vf, z_vf);
 			Indices[index] = index;
 			// indice ptr acelasi varf la parcurgerea paralelelor
 			index_aux = parr * (NR_MERID)+merid;
@@ -261,7 +252,7 @@ void CreateSphereVBO(void)
 					index2 = index2 % (NR_PARR + 1);
 					index3 = index3 % (NR_PARR + 1);
 				}
-				Indices[AUX + 4 * index] = index1;  // unele valori ale lui Indices, corespunzatoare Polului Nord, au valori neadecvate
+				Indices[AUX + 4 * index] = index1;
 				Indices[AUX + 4 * index + 1] = index2;
 				Indices[AUX + 4 * index + 2] = index3;
 				Indices[AUX + 4 * index + 3] = index4;
@@ -273,10 +264,6 @@ void CreateSphereVBO(void)
 	glBindBuffer(GL_ARRAY_BUFFER, SphereVboId);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
 
-	//glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertices), Vertices);
-	//glBufferSubData(GL_ARRAY_BUFFER, sizeof(Vertices), sizeof(Colors), Colors);
-	//glBufferSubData(GL_ARRAY_BUFFER, sizeof(Vertices) + sizeof(Colors), sizeof(Normals), Normals);
-
 	glGenBuffers(1, &SphereEboId);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEboId);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
@@ -285,12 +272,8 @@ void CreateSphereVBO(void)
 	glBindVertexArray(SphereVaoId);
 
 	// atributele; 
-	glEnableVertexAttribArray(0); // atributul 0 = pozitie
+	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	//glEnableVertexAttribArray(1); // atributul 1 = culoare
-	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)sizeof(Vertices));
-	//glEnableVertexAttribArray(2); // atributul 2 = normala
-	//glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)(sizeof(Vertices) + sizeof(Colors)));
 }
 
 void CreateTerrainVBO(void)
@@ -397,16 +380,20 @@ void UseTerrainShader(void) {
 	glUseProgram(ProgramId);
 	glBindVertexArray(TerrainVaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, TerrainVboId);
+
 	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
+
 	myMatrix = glm::mat4(1.0f);
 	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
+
 	glUniform3f(viewPosLocation, Obsx, Obsy, Obsz);
 	glUniform1i(heightMapLocation, 0);
+
 	glUniform1f(uTexelSizeLocation, uTexelSize);
 	glUniform1f(heightScaleLocation, heightScale);
 	glUniform3f(lightPosLoc, currX, currY, currZ);
-	glUniform3f(lightColorLoc, );
+	glUniform1i(isDarkLocation, isDark);
 	glutPostRedisplay();
 }
 
@@ -423,7 +410,7 @@ void UseSphShader(void) {
 	sphMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(currX, currY, currZ));
 	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &sphMatrix[0][0]);
 
-	glUniform1i(isDarkLocation, isDark);
+	glUniform1i(isDarkLocation2, isDark);
 	glutPostRedisplay();
 }
 
@@ -462,12 +449,11 @@ void Initialize(void)
 	myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
 	viewLocation = glGetUniformLocation(ProgramId, "view");
 	projLocation = glGetUniformLocation(ProgramId, "projection");
-	//matrUmbraLocation = glGetUniformLocation(ProgramId, "matrUmbra");
 	viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
 	heightMapLocation = glGetUniformLocation(ProgramId, "heightMap");
 	uTexelSizeLocation = glGetUniformLocation(ProgramId, "uTexelSize");
 	heightScaleLocation = glGetUniformLocation(ProgramId, "HEIGHT_SCALE");
-	lightColorLoc = glGetUniformLocation(ProgramId, "lightColor");
+	isDarkLocation = glGetUniformLocation(ProgramId, "isDark");
 	lightPosLoc = glGetUniformLocation(ProgramId, "inLightPos");
 	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 	
@@ -476,9 +462,7 @@ void Initialize(void)
 	myMatrixLocation2 = glGetUniformLocation(SphProgramId, "myMatrix");
 	viewLocation2 = glGetUniformLocation(SphProgramId, "view");
 	projLocation2 = glGetUniformLocation(SphProgramId, "projection");
-	isDarkLocation = glGetUniformLocation(SphProgramId, "isDark");
-	//matrUmbraLocation = glGetUniformLocation(SphProgramId, "matrUmbra");
-	//viewPosLocation2 = glGetUniformLocation(SphProgramId, "viewPos");
+	isDarkLocation2 = glGetUniformLocation(SphProgramId, "isDark");
 	glUniformMatrix4fv(myMatrixLocation2, 1, GL_FALSE, &sphMatrix[0][0]);
 
 	glEnable(GL_DEPTH_TEST);

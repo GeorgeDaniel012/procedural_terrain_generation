@@ -10,11 +10,13 @@ uniform mat4 projection;      // the projection matrix
 
 // received from Tessellation Control Shader - all texture coordinates for the patch vertices
 in vec2 TextureCoord[];
+in vec3 ViewPos[];
 
 // send to Fragment Shader for coloring
 out float Height;
 out vec2 TexCoords;
-
+out vec3 fragPos;
+out vec3 inViewPos;
 
 void main()
 {
@@ -40,10 +42,6 @@ void main()
 
     // ----------------------------------------------------------------------
     // retrieve control point position coordinates
-    //vec4 p00 = Pos1[0];//gl_in[0].gl_Position;
-    //vec4 p01 = Pos1[1];//gl_in[1].gl_Position;
-    //vec4 p10 = Pos1[2];//gl_in[2].gl_Position;
-    //vec4 p11 = Pos1[3];//gl_in[3].gl_Position;
     vec4 p00 = gl_in[0].gl_Position;
     vec4 p01 = gl_in[1].gl_Position;
     vec4 p10 = gl_in[2].gl_Position;
@@ -62,8 +60,19 @@ void main()
     // displace point along normal
     p += normal * -Height;
 
+    fragPos = (myMatrix * p).xyz;
+
+    // Bilinear interpolation of viewPos
+    vec3 vp00 = ViewPos[0];
+    vec3 vp01 = ViewPos[1];
+    vec3 vp10 = ViewPos[2];
+    vec3 vp11 = ViewPos[3];
+
+    vec3 vp0 = mix(vp00, vp01, u);
+    vec3 vp1 = mix(vp10, vp11, u);
+    inViewPos = mix(vp0, vp1, v);
+
     // ----------------------------------------------------------------------
     // output patch point position in clip space
     gl_Position = projection * view * myMatrix * p;
-    //gl_Position = myMatrix * p;
 }
