@@ -1485,5 +1485,11 @@
     <None Include="tessellation.tese">
       <Filter>Resource Files\shaders\example</Filter>
     </None>
+    <None Include="sphere.vert">
+      <Filter>Resource Files\shaders\example</Filter>
+    </None>
+    <None Include="sphere.frag">
+      <Filter>Resource Files\shaders\example</Filter>
+    </None>
   </ItemGroup>
 </Project>
