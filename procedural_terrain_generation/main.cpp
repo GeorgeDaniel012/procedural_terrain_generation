@@ -109,12 +109,6 @@ void noiseToHeightMap() {
 	gen.SetFractalGain(0.1f);
 	gen.SetFractalLacunarity(3.0f);
 	gen.SetFractalOctaves(3);
-
-	//for (int x = 0; x < 1000; x++)
-	//	for (int y = 0; y < 1000; y++)
-	//		std::cout << noise(x, y);
-		
-
 	//gen.SetSeed(42);
 
 	for (int y = 0; y < height; y++) {
@@ -127,8 +121,6 @@ void noiseToHeightMap() {
 					 + 0.25 * noise(4 * nx, 4 * ny);
 
 			noiseValue[y][x] = noiseVal / 1.75 * 255;
-			
-			//std::cout << noiseValue[y][x] << " ";
 		}
 	}
 
@@ -137,7 +129,6 @@ void noiseToHeightMap() {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, &noiseValue);
 	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
 
-	//std::cout << "width" << width << " height" << height << "\n";
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
@@ -284,7 +275,6 @@ void CreateTerrainVBO(void)
 	{
 		for (unsigned j = 0; j <= nr_patches - 1; j++)
 		{
-			//std::cout << -width / 2.0f + width * i / (float)nr_patches << " " << -height / 2.0f + height * j / (float)nr_patches << "\n";
 			Vertices.push_back(-width / 2.0f + width * i / (float)nr_patches); // v.x
 			Vertices.push_back(-height / 2.0f + height * j / (float)nr_patches); // v.z
 			Vertices.push_back(0.0f); // v.y
@@ -333,11 +323,10 @@ void CreateTerrainVBO(void)
 	// se activeaza lucrul cu atribute; atributul 0 = pozitie
 	glEnableVertexAttribArray(0);
 	//glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);//(4 * sizeof(GLfloat)));
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
 
 	// se activeaza lucrul cu atribute; atributul 0 = pozitie
 	glEnableVertexAttribArray(1);
-	//glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(4 * sizeof(GLfloat)));
 
 	glPatchParameteri(GL_PATCH_VERTICES, 4);
@@ -415,15 +404,12 @@ void UseSphShader(void) {
 }
 
 void SphereMovement(void) {
-	//glUniform3f(lightColorLoc, 1.0f, 0.99f, 0.64f);
-	//glUniform3f(lightPosLoc, 0.f, 100.f, 100.f);
 	if (currY >= -600.f && currY <= -570.f) {
 		startTime = t;
 		isDark = !isDark;
 		nrRotations++;
 	}
 	t = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - startTime * nrRotations;
-	//std::cout << t << " rotations: " << nrRotations << std::endl;
 	currX = X0 + vx * t;
 	currY = Y0 + vy * t;
 	currZ = Z0 + vz * t - g / 2 * t * t;
@@ -472,8 +458,6 @@ void RenderFunction(void)
 {
 	// culoarea de fond a ecranului
 	if (!isDark) { // cand e zi/lumina
-		//glClearColor(0.13f, 0.43f, 0.93f, 1.0f);
-
 		// clamp -570:570 to 0:1
 		// /570 -> -1:1
 		// +1 -> 0:2
@@ -492,16 +476,10 @@ void RenderFunction(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_FRONT_AND_BACK);
-
 	// reperul de vizualizare + proiectie
 	Obsx = Refx + dist * cos(alpha) * cos(beta);
 	Obsy = Refy + dist * cos(alpha) * sin(beta);
 	Obsz = Refz + dist * sin(alpha);
-
-	//std::cout << "Observator: " << Obsx << " " << Obsy << " " << Obsz << "\n";
-	//std::cout << "Ref: " << Refx << " " << Refy << " " << Refz << "\n";
 
 	glm::vec3 Obs = glm::vec3(Obsx, Obsy, Obsz);
 	glm::vec3 PctRef = glm::vec3(Refx, Refy, Refz);
@@ -509,9 +487,11 @@ void RenderFunction(void)
 	view = glm::lookAt(Obs, PctRef, Vert);
 	projection = glm::infinitePerspective(fov, GLfloat(winWidth) / GLfloat(winHeight), znear);
 	
+	// randam terenul cu shaderele corespunzatoare
 	UseTerrainShader();
 	glDrawArrays(GL_PATCHES, 0, 4 * nr_patches * nr_patches);
 
+	// randam sfera cu shaderele corespunzatoare
 	UseSphShader();
 	for (int patr = 0; patr < (NR_PARR + 1) * NR_MERID; patr++)
 	{
@@ -522,8 +502,8 @@ void RenderFunction(void)
 				GL_UNSIGNED_SHORT,
 				(GLvoid*)((2 * (NR_PARR + 1) * (NR_MERID)+4 * patr) * sizeof(GLushort)));
 	}
-	//std::cout << isDark;
-	
+
+	// verificare erori in timpul randarii
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
 		std::cerr << "OpenGL Error: " << error << std::endl;

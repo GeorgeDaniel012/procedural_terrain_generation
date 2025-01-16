@@ -15,8 +15,6 @@ uniform vec3 viewPos;
 void main ()
 {
    gl_Position = in_Position;
-   //gl_Position = projection*view*in_Position;
-   //Pos = gl_Position;
    inViewPos=vec3(projection*view*vec4(viewPos, 1.0f));
    TexCoord = in_Tex;
 }

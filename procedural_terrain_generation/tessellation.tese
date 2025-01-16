@@ -4,7 +4,7 @@
 layout (quads, fractional_odd_spacing, cw) in;
 
 uniform sampler2D heightMap;  // the texture corresponding to our height map
-uniform mat4 myMatrix;           // the model matrix
+uniform mat4 myMatrix;        // the model matrix
 uniform mat4 view;            // the view matrix
 uniform mat4 projection;      // the projection matrix
 
@@ -24,7 +24,6 @@ void main()
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
 
-    // ----------------------------------------------------------------------
     // retrieve control point texture coordinates
     vec2 t00 = TextureCoord[0];
     vec2 t01 = TextureCoord[1];
@@ -37,10 +36,9 @@ void main()
     vec2 texCoord = (t1 - t0) * v + t0;
     TexCoords = texCoord;
 
-    // lookup texel at patch coordinate for height and scale + shift as desired
-    Height = texture(heightMap, texCoord).r * 64.0 - 16.0; //64.0, 16.0
+    // lookup texel at patch coordinate for height and scale
+    Height = texture(heightMap, texCoord).r * 64.0 - 16.0;
 
-    // ----------------------------------------------------------------------
     // retrieve control point position coordinates
     vec4 p00 = gl_in[0].gl_Position;
     vec4 p01 = gl_in[1].gl_Position;
@@ -62,7 +60,7 @@ void main()
 
     fragPos = (myMatrix * p).xyz;
 
-    // Bilinear interpolation of viewPos
+    // bilinear interpolation of viewPos
     vec3 vp00 = ViewPos[0];
     vec3 vp01 = ViewPos[1];
     vec3 vp10 = ViewPos[2];
@@ -72,7 +70,6 @@ void main()
     vec3 vp1 = mix(vp10, vp11, u);
     inViewPos = mix(vp0, vp1, v);
 
-    // ----------------------------------------------------------------------
-    // output patch point position in clip space
+    // output patch
     gl_Position = projection * view * myMatrix * p;
 }
