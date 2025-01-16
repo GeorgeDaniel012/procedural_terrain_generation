@@ -17,7 +17,7 @@
 
 //////////////////////////////////////
 
-const int targetFPS = 60;//60;
+const int targetFPS = 60;
 const int frameInterval = 1000 / targetFPS;
 
 GLuint
@@ -105,10 +105,11 @@ void noiseToHeightMap() {
 
 	//gen.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
 	gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-	gen.SetFrequency(0.00001f);
+	gen.SetFrequency(0.000001f);
 	gen.SetFractalGain(0.1f);
-	gen.SetFractalLacunarity(3.0f);
+	gen.SetFractalLacunarity(4.0f);
 	gen.SetFractalOctaves(3);
+	gen.SetFractalType(FastNoiseLite::FractalType_FBm);
 	//gen.SetSeed(42);
 
 	for (int y = 0; y < height; y++) {
@@ -466,8 +467,6 @@ void RenderFunction(void)
 		float clampedCurrY = (currY / 570 + 1) / 2;
 
 		glClearColor(0.39f * clampedCurrY + 0.15f * cos((clampedCurrY + 0.1) * PI) - 0.05f, 0.43f * sin(clampedCurrY * PI) + 0.075f * cos(clampedCurrY * PI) - 0.05f, 0.93f * sin(clampedCurrY * PI), 1.0f); 
-
-		std::cout << currY << ' ' << clampedCurrY << ' ' << 0.3f * cos(clampedCurrY * PI) << ' ' << 0.43f * sin(clampedCurrY * PI) << std::endl;
 	}
 	else { // cand e noapte/intuneric
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
